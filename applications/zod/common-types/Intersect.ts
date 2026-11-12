@@ -19,6 +19,7 @@ extend(S.Intersect, {
     if (this.allOf.some((item) => !item.$zod)) return;
     const variants = this.allOf.map((item) => item.$zod);
     const [first, ...rest] = variants;
+    if (!first) return;
     const zodSchema = rest.reduce((acc, current) => z.intersection(acc, current), first);
     return applyDataValueMeta(this, zodSchema);
   },

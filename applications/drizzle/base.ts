@@ -181,10 +181,15 @@ export type RelationMap = Record<string, ModelRelation[]>;
 export type RelationMaps = Record<'direct' | 'reverse', RelationMap>;
 
 /** Returns true when the fields are guaranteed to identify at most one row of the model */
-const isUniqueFieldSet = (model: Model, fields: string[]) =>
-  model.key.every((k) => fields.includes(k as string)) ||
-  (fields.length === 1 && 'unique' in model.properties[fields[0]] && !!model.properties[fields[0]].unique) ||
-  !!model.uniques?.some((u) => !u.where && u.fields.every((f) => fields.includes(f as string)));
+const isUniqueFieldSet = (model: Model, fields: string[]) => {
+  const [singleField] = fields;
+  const singleProperty = fields.length === 1 && singleField !== undefined ? model.properties[singleField] : undefined;
+  return (
+    model.key.every((k) => fields.includes(k as string)) ||
+    (!!singleProperty && 'unique' in singleProperty && !!singleProperty.unique) ||
+    !!model.uniques?.some((u) => !u.where && u.fields.every((f) => fields.includes(f as string)))
+  );
+};
 
 const generateEnumDeclaration = (name: string, schema: S.Enum) =>
   ts.VarDeclaration({
