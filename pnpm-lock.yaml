@@ -173,7 +173,7 @@ importers:
         version: 2.39.0
       zod:
         specifier: '*'
-        version: 4.4.3
+        version: 4.6.7
     optionalDependencies:
       '@supschema/common-types':
         specifier: workspace:*
@@ -2056,8 +2056,8 @@ packages:
   xmlcreate@2.0.4:
     resolution: {integrity: sha512-nquOebG4sngPmGPICTS5EnxqhKbCmz5Ox5hsszI2T6U5qdrJizBc+0ilYSEjTSzU0yZcmvppztXe/5Al5fUwdg==}
 
-  zod@4.4.3:
-    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+  zod@4.6.7:
+    resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
 
 snapshots:
 
@@ -3438,4 +3438,4 @@ snapshots:
 
   xmlcreate@2.0.4: {}
 
-  zod@4.4.3: {}
+  zod@4.6.7: {}

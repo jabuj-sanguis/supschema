@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { applyNumericConstraints } from './common.js';
 
 declare module '@supschema/common-types/numeric/integer/SafeInt.js' {
-  interface SafeInt extends ZodExtension<z.ZodInt> {}
+  interface SafeInt extends ZodExtension<z.ZodNumberFormat<'safeint' | 'int32' | 'uint32'>> {}
 }
 
 extend(S.SafeInt, {
