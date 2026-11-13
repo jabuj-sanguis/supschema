@@ -1,19 +1,16 @@
 import { extend } from '@supschema/core';
 import { S } from '@supschema/common-types';
-import { DrizzleExtension, DrizzleExtended } from '../base.js';
+import { DrizzleColumnDef, DrizzleExtended, DrizzleExtension, withColumnModifiers } from '../base.js';
 
 declare module '@supschema/common-types/Nullable.js' {
-  interface Nullable<S> extends DrizzleExtension<S extends DrizzleExtended ? true : false> {}
+  interface Nullable<S> extends DrizzleExtension<S extends DrizzleExtended<infer C> ? C : undefined, true> {}
 }
 
 type ExtendedNullable = S.Nullable<S.DataValue & DrizzleExtended>;
 extend(S.Nullable, {
-  get $drizzle(): ExtendedNullable['$drizzle'] | undefined {
-    if (!this.schema.$drizzle) return;
-
-    return () => ({
-      ...this.schema.$drizzle(),
-      nullable: true,
-    });
+  get $drizzleColumn(): DrizzleColumnDef | undefined {
+    const def = this.schema.$drizzleColumn;
+    if (!def) return;
+    return withColumnModifiers(this, { column: (ctx) => def.column(ctx), nullable: true });
   },
 } as ThisType<ExtendedNullable>);

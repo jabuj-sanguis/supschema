@@ -133,8 +133,8 @@ it('models', () => {
     {
       name: 'Test',
       key: ['id', 'test1'],
-      indexes: [{ fields: ['test1', 'test2'] }],
-      uniques: [{ fields: ['id', 'test1', 'test2'] }],
+      indexes: [{ fields: ['test1', 'test2'] }, { fields: ['test2'], name: 'Test_test2_index' }],
+      uniques: [{ fields: ['id', 'test1', 'test2'] }, { fields: ['test1', 'test2'], name: 'Test_named_unique' }],
     },
     { id: S.String(), test1: Unique(S.String()), test2: S.String() },
   );
@@ -147,7 +147,9 @@ model Test {
 
   @@id([id, test1])
   @@unique([id, test1, test2])
+  @@unique([test1, test2], map: "Test_named_unique")
   @@index([test1, test2])
+  @@index([test2], map: "Test_test2_index")
 }
 `);
 });

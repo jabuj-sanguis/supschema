@@ -26,15 +26,6 @@ importers:
 
   applications/drizzle:
     dependencies:
-      '@alloy-js/core':
-        specifier: ^0.24.1
-        version: 0.24.1
-      '@alloy-js/typescript':
-        specifier: ^0.24.0
-        version: 0.24.0
-      '@supschema/codegen-utils':
-        specifier: workspace:*
-        version: link:../../codegen-utils
       '@supschema/core':
         specifier: workspace:*
         version: link:../../core

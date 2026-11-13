@@ -1,21 +1,25 @@
 import { extend } from '@supschema/core';
 import { S } from '@supschema/common-types';
-import { byDialect, column, DrizzleExtension } from '../../base.js';
-import { callSuper } from '@supschema/core/utils.js';
+import * as pg from 'drizzle-orm/pg-core';
+import * as mysql from 'drizzle-orm/mysql-core';
+import * as sqlite from 'drizzle-orm/sqlite-core';
+import { ColumnFactories, columnDef, DrizzleColumnDef, FactoryColumns } from '../../base.js';
+
+const columns = {
+  postgresql: () => pg.smallint(),
+  mysql: () => mysql.smallint(),
+  sqlite: () => sqlite.integer(),
+} satisfies ColumnFactories;
+export type Int16Columns = FactoryColumns<typeof columns>;
 
 declare module '@supschema/common-types/numeric/integer/Int16.js' {
-  interface Int16 extends DrizzleExtension {}
+  interface Int16 {
+    $drizzleColumn: DrizzleColumnDef<Int16Columns, false>;
+  }
 }
 
 extend(S.Int16, {
-  $drizzle() {
-    return {
-      ...callSuper(this, '$drizzle', S.Int16),
-      ...byDialect({
-        postgresql: () => column('smallint'),
-        mysql: () => column('smallint'),
-        sqlite: () => column('integer'),
-      })(),
-    };
+  get $drizzleColumn() {
+    return columnDef(this, columns);
   },
 });

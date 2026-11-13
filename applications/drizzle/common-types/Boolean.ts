@@ -1,21 +1,23 @@
 import { extend } from '@supschema/core';
 import { S } from '@supschema/common-types';
-import { byDialect, column, DrizzleExtension } from '../base.js';
-import { callSuper } from '@supschema/core/utils.js';
+import * as pg from 'drizzle-orm/pg-core';
+import * as mysql from 'drizzle-orm/mysql-core';
+import * as sqlite from 'drizzle-orm/sqlite-core';
+import { ColumnFactories, columnDef, DrizzleExtension, FactoryColumns } from '../base.js';
+
+const columns = {
+  postgresql: () => pg.boolean(),
+  mysql: () => mysql.boolean(),
+  sqlite: () => sqlite.integer({ mode: 'boolean' }),
+} satisfies ColumnFactories;
+export type BooleanColumns = FactoryColumns<typeof columns>;
 
 declare module '@supschema/common-types/Boolean.js' {
-  interface Boolean extends DrizzleExtension {}
+  interface Boolean extends DrizzleExtension<BooleanColumns> {}
 }
 
 extend(S.Boolean, {
-  $drizzle() {
-    return {
-      ...callSuper(this, '$drizzle', S.Boolean),
-      ...byDialect({
-        postgresql: () => column('boolean'),
-        mysql: () => column('boolean'),
-        sqlite: () => column('integer', { mode: 'boolean' }),
-      })(),
-    };
+  get $drizzleColumn() {
+    return columnDef(this, columns);
   },
 });

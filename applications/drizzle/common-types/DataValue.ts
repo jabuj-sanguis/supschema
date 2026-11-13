@@ -1,22 +1,10 @@
-import { extend } from '@supschema/core';
+import { extend, getSchemaMeta, withSchemaMeta } from '@supschema/core';
 import { S } from '@supschema/common-types';
-import { DrizzleExtension } from '../base.js';
-import { findDescriptorInPrototypeChain } from '@supschema/core/utils.js';
+import { DRIZZLE_COLUMN_MODIFIER, DrizzleColumnModifier } from '../base.js';
 
-type ExtendedDataValue = S.DataValue & DrizzleExtension<boolean>;
-extend(
-  S.DataValue,
-  {
-    get $drizzle(): ExtendedDataValue['$drizzle'] {
-      if (!findDescriptorInPrototypeChain(this, '$drizzle', S.DataValue)) return;
-
-      return () =>
-        ({
-          title: this.title,
-          description: this.description,
-          unique: 'unique' in this && !!this.unique,
-        }) as never;
-    },
-  } as ThisType<ExtendedDataValue>,
-  { memoGetters: false },
-);
+extend(S.DataValue, {
+  $drizzle(this: S.DataValue, modify: DrizzleColumnModifier) {
+    const previous = getSchemaMeta<DrizzleColumnModifier>(this, DRIZZLE_COLUMN_MODIFIER);
+    return withSchemaMeta(this, DRIZZLE_COLUMN_MODIFIER, previous ? (column: unknown) => modify(previous(column)) : modify);
+  },
+} as never);
