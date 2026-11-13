@@ -41,11 +41,12 @@ export function createType(
     return schema;
   }
   Object.defineProperty(constructorFn, 'name', {
+    // `import.meta.url` is undefined when the module is transpiled to CommonJS, e.g. by drizzle-kit
     value:
-      importMeta.url
+      (importMeta?.url ?? '')
         .replace(/\.[^/.]+$/, '')
         .split('/')
-        .findLast((s) => s !== 'index') ?? 'Schema',
+        .findLast((s) => s && s !== 'index') ?? 'Schema',
   });
   if (parentType) Object.setPrototypeOf(constructorFn.prototype, parentType.prototype);
 

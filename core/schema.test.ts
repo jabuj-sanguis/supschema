@@ -13,6 +13,13 @@ it('creates Schema type and returns a schema object', () => {
   expect(Schema.getConstructorArgs({})).toEqual([]);
 });
 
+it('creates types without importMeta.url, e.g. in CommonJS modules', () => {
+  const Type = createType({} as ImportMeta, Schema);
+
+  expect(Type.name).toBe('Schema');
+  expect(Type({})).toBeInstanceOf(Schema);
+});
+
 it('creates a named type from importMeta.url and preserves inheritance', () => {
   const Parent = createType(fakeImportMeta('file:///root/Parent.ts'), Schema);
   const Child = createType(fakeImportMeta('file:///root/child/index.ts'), Parent);

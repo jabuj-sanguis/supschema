@@ -1,12 +1,27 @@
 import { extend } from '@supschema/core';
 import { S } from '@supschema/common-types';
 import type * as pg from 'drizzle-orm/pg-core';
-import { DrizzleColumnDef, DrizzleExtended, DrizzleExtension, JsonColumns, JsonData, jsonColumn, withColumnModifiers } from '../base.js';
+import {
+  DialectColumns,
+  DrizzleColumnDef,
+  DrizzleColumnsOf,
+  DrizzleExtended,
+  DrizzleExtension,
+  DrizzleNullableOf,
+  JsonColumns,
+  JsonData,
+  jsonColumn,
+  withColumnModifiers,
+} from '../base.js';
 
 /** Only PostgreSQL supports native arrays, and only of scalar non-nullable values */
 export type ArrayColumns<I> =
-  I extends DrizzleExtended<infer C, infer N>
-    ? JsonColumns<JsonData<I>[]> extends infer J extends JsonColumns<JsonData<I>[]>
+  I extends DrizzleExtended
+    ? [DrizzleColumnsOf<I>, DrizzleNullableOf<I>, JsonColumns<JsonData<I>[]>] extends [
+        infer C extends DialectColumns,
+        infer N,
+        infer J extends JsonColumns<JsonData<I>[]>,
+      ]
       ? {
           postgresql: N extends true
             ? J['postgresql']

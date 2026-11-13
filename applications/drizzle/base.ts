@@ -85,16 +85,31 @@ export const getRegisteredDialect = (): DrizzleDialect => {
   return dialect;
 };
 
-type ColumnsOf<T> = T extends DrizzleExtended<infer C> ? C : never;
-type NullableOf<T> = T extends DrizzleExtended<DialectColumns, infer N> ? N : never;
+/** Type-only key of the columns set by `$drizzle`, see {@link DrizzleColumnsMarker} */
+export declare const DRIZZLE_COLUMNS: unique symbol;
+/**
+ * Type-only marker of the columns set by `$drizzle`. It is added as an intersection instead of replacing
+ * `$drizzleColumn`, so methods returning `this` keep the modified type. When the marker is added several times,
+ * the property is an intersection of functions, and the last one, i.e. the latest modifier, is inferred.
+ */
+export interface DrizzleColumnsMarker<C extends DialectColumns> {
+  readonly [DRIZZLE_COLUMNS]?: () => C;
+}
+
+/** Column types of a schema, taking `$drizzle` modifiers into account */
+export type DrizzleColumnsOf<T> = T extends { readonly [DRIZZLE_COLUMNS]?: () => infer C extends DialectColumns }
+  ? C
+  : T extends DrizzleExtended<infer C>
+    ? C
+    : never;
+/** Whether the column of a schema is nullable */
+export type DrizzleNullableOf<T> = T extends DrizzleExtended<DialectColumns, infer N> ? N : never;
 
 /** Schema with the column builder replaced by the result of a `$drizzle` modifier */
-export type WithDrizzleColumn<T, R> = Omit<T, '$drizzleColumn'> & {
-  $drizzleColumn: DrizzleColumnDef<
-    { [D in DrizzleDialect]: D extends ConfiguredDialect ? Extract<R, DialectColumns[D]> : ColumnsOf<T>[D] },
-    NullableOf<T>
-  >;
-};
+export type WithDrizzleColumn<T, R> = T &
+  DrizzleColumnsMarker<{
+    [D in DrizzleDialect]: D extends ConfiguredDialect ? Extract<R, DialectColumns[D]> : DrizzleColumnsOf<T>[D];
+  }>;
 
 declare module '@supschema/common-types/DataValue.js' {
   interface DataValue {
@@ -104,7 +119,7 @@ declare module '@supschema/common-types/DataValue.js' {
      */
     $drizzle<T extends DrizzleExtended, R extends DialectColumns[ConfiguredDialect]>(
       this: T,
-      modify: (column: ColumnsOf<T>[ConfiguredDialect]) => R,
+      modify: (column: DrizzleColumnsOf<T>[ConfiguredDialect]) => R,
     ): WithDrizzleColumn<T, R>;
   }
 }
@@ -141,10 +156,12 @@ export const columnDef = <F extends ColumnFactories>(
 
 /** Type of the column value used when the column is embedded into a JSON column */
 export type JsonData<T> =
-  T extends DrizzleExtended<infer C, infer N>
-    ?
-        | (C['postgresql']['_'] extends { $type: infer U } ? U : C['postgresql']['_']['data'])
-        | (N extends true ? null : never)
+  T extends DrizzleExtended
+    ? DrizzleColumnsOf<T> extends infer C extends DialectColumns
+      ?
+          | (C['postgresql']['_'] extends { $type: infer U } ? U : C['postgresql']['_']['data'])
+          | (DrizzleNullableOf<T> extends true ? null : never)
+      : never
     : unknown;
 
 export interface JsonColumns<T> {
@@ -183,7 +200,11 @@ interface RelationLike<M1 extends string = string, N1 = string, M2 extends strin
 }
 
 type PropertyColumn<T, D extends DrizzleDialect> =
-  T extends DrizzleExtended<infer C, infer N> ? (N extends true ? C[D] : NotNull<C[D]>) : never;
+  T extends DrizzleExtended
+    ? DrizzleNullableOf<T> extends true
+      ? DrizzleColumnsOf<T>[D]
+      : NotNull<DrizzleColumnsOf<T>[D]>
+    : never;
 type PropertiesColumns<P, D extends DrizzleDialect> = { [K in keyof P]: PropertyColumn<P[K], D> };
 type ModelColumns<M extends ModelLike, D extends DrizzleDialect> = PropertiesColumns<M['properties'], D>;
 

@@ -1,9 +1,9 @@
 import { extend } from '@supschema/core';
 import { S } from '@supschema/common-types';
-import { DrizzleColumnDef, DrizzleExtended, DrizzleExtension, withColumnModifiers } from '../base.js';
+import { DrizzleColumnDef, DrizzleColumnsOf, DrizzleExtended, DrizzleExtension, withColumnModifiers } from '../base.js';
 
 declare module '@supschema/common-types/Nullable.js' {
-  interface Nullable<S> extends DrizzleExtension<S extends DrizzleExtended<infer C> ? C : undefined, true> {}
+  interface Nullable<S> extends DrizzleExtension<S extends DrizzleExtended ? DrizzleColumnsOf<S> : undefined, true> {}
 }
 
 type ExtendedNullable = S.Nullable<S.DataValue & DrizzleExtended>;

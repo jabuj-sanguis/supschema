@@ -436,9 +436,50 @@ it('column modifiers and table settings', async () => {
   ]);
 });
 
+// Application specific metadata, e.g. a public flag, set by a method returning `this`
+const PUB = Symbol('pub');
+declare module '@supschema/common-types/DataValue.js' {
+  interface DataValue {
+    $testPub(): this;
+  }
+}
+extend(S.DataValue, {
+  $testPub() {
+    return withSchemaMeta(this, PUB, true);
+  },
+});
+
+it('keeps column types with methods returning this', () => {
+  const Test = Model(
+    { name: 'Test', key: ['id'] },
+    {
+      id: S.Int32(),
+      pubLast: S.Int32()
+        .$drizzle((c) => c.default(1))
+        .$testPub(),
+      pubFirst: S.Int32()
+        .$testPub()
+        .$drizzle((c) => c.default(1)),
+      chained: S.Int32()
+        .$drizzle((c) => c.default(1))
+        .$testPub()
+        .$drizzle((c) => c.generatedAlwaysAsIdentity()),
+      nullable: S.Nullable(S.Int32().$drizzle((c) => c.default(1)).$testPub()),
+    },
+  );
+  const { Test: table } = drizzleSchema('postgresql', { Test });
+
+  expectTypeOf(table.$inferInsert).toEqualTypeOf<{
+    id: number;
+    pubLast?: number;
+    pubFirst?: number;
+    nullable?: number | null;
+  }>();
+  expect(getSchemaMeta(Test.properties.pubLast, PUB)).toBe(true);
+  expect(getSchemaMeta(Test.properties.chained, PUB)).toBe(true);
+});
+
 it('stores column modifiers as metadata', async () => {
-  // Like application specific metadata, e.g. a public flag
-  const PUB = Symbol('pub');
   const pub = <T extends Schema>(schema: T) => withSchemaMeta(schema, PUB, true);
 
   const schemas = {
