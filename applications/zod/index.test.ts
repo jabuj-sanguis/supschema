@@ -1,4 +1,5 @@
-import { expect, it } from 'vitest';
+import { expect, expectTypeOf, it } from 'vitest';
+import { z } from 'zod';
 import { S } from '@supschema/common-types';
 import './common-types/index.js';
 
@@ -52,6 +53,8 @@ it('supports array, tuple, union, intersect, enum and record', () => {
   });
 
   const zodSchema = schema.$zod;
+  expectTypeOf<z.infer<typeof zodSchema>['tuple']>().toEqualTypeOf<[string, boolean]>();
+  expect(S.Tuple([S.String(), S.Boolean()]).$zod.safeParse(['x', true, 'y']).success).toBe(false);
 
   expect(
     zodSchema.safeParse({

@@ -8,7 +8,7 @@ declare module '@supschema/common-types/Tuple.js' {
     T extends ZodExtended[]
       ? z.ZodTuple<{
           [K in keyof T]: T[K] extends ZodExtended<infer Z> ? Z : never;
-        }>
+        }, null> // `z.tuple` without `.rest()` accepts no further items
       : never
   > {}
 }
