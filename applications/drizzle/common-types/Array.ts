@@ -1,6 +1,7 @@
 import { extend } from '@supschema/core';
 import { S } from '@supschema/common-types';
-import type * as pg from 'drizzle-orm/pg-core';
+import { is } from 'drizzle-orm';
+import * as pg from 'drizzle-orm/pg-core';
 import {
   DialectColumns,
   DrizzleColumnDef,
@@ -14,6 +15,11 @@ import {
   withColumnModifiers,
 } from '../base.js';
 
+/** Columns which can't be items of a native PostgreSQL array, the array is stored as JSON instead */
+type NonNativeArrayItem = pg.PgArrayBuilder<any, any> | pg.PgJsonbBuilder<any> | pg.PgJsonBuilder<any>;
+const isNonNativeArrayItem = (column: unknown) =>
+  is(column, pg.PgArrayBuilder) || is(column, pg.PgJsonbBuilder) || is(column, pg.PgJsonBuilder);
+
 /** Only PostgreSQL supports native arrays, and only of scalar non-nullable values */
 export type ArrayColumns<I> =
   I extends DrizzleExtended
@@ -25,7 +31,7 @@ export type ArrayColumns<I> =
       ? {
           postgresql: N extends true
             ? J['postgresql']
-            : C['postgresql'] extends pg.PgArrayBuilder<any, any> | J['postgresql']
+            : C['postgresql'] extends NonNativeArrayItem
               ? J['postgresql']
               : C['postgresql'] extends { array(): infer A extends pg.PgColumnBuilderBase }
                 ? A
@@ -46,12 +52,12 @@ extend(S.Array, {
     const item = this.items.$drizzleColumn;
     if (!item) return;
 
-    const native = !item.nullable && !(this.items instanceof S.Array) && !(this.items instanceof S.Object);
     return withColumnModifiers(this, {
-      column: (ctx) =>
-        (ctx.dialect === 'postgresql' && native
-          ? (item.column(ctx) as unknown as pg.PgColumnBuilder).array()
-          : jsonColumn(ctx.dialect)) as never,
+      column: (ctx) => {
+        if (ctx.dialect !== 'postgresql' || item.nullable) return jsonColumn(ctx.dialect) as never;
+        const column = item.column(ctx);
+        return (isNonNativeArrayItem(column) ? jsonColumn(ctx.dialect) : (column as pg.PgColumnBuilder).array()) as never;
+      },
       nullable: false,
     });
   },

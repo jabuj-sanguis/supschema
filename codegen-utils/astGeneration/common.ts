@@ -1,7 +1,7 @@
 import { computed, shallowReactive } from '@vue/reactivity';
 import { Registry } from './registry.js';
 import { currentNode, GenerationNode } from './dynamicTree.js';
-import { extractOptionsModification, Schema } from '@supschema/core';
+import { getSchemaOrigins, Schema } from '@supschema/core';
 import { isDeepEqual } from 'remeda';
 
 export interface SchemaDefinitionRef<S extends Schema = Schema> {
@@ -80,12 +80,9 @@ export class GlobalDefinitionRegistry extends Registry {
     const { schemas } = this;
     const { scopePath, nameSuffix } = currentNode.context;
     const baseSchema = computed(() => {
-      let s: S | undefined = schema;
-      while (s) {
+      for (const s of getSchemaOrigins(schema)) {
         const ref = schemas.get(s);
         if (ref && !isDeepEqual(ref, [...scopePath, nameSuffix])) return s;
-
-        s = extractOptionsModification(s)?.originalSchema;
       }
     }).value;
 

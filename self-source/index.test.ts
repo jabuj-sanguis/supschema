@@ -1,6 +1,6 @@
 import { it, expect } from 'vitest';
 import { generateSelfSourceFilesOutput } from './index.js';
-import { modifyOpts, Schema, SchemaPathGetter } from '@supschema/core';
+import { modifyOpts, Schema, SchemaPathGetter, withSchemaMeta } from '@supschema/core';
 
 const basePath = new URL('..', import.meta.url).href;
 const pathGetter: SchemaPathGetter = (m) =>
@@ -99,5 +99,36 @@ export const Schema3 = Schema({
 `,
       },
     ],
+  });
+});
+
+it('writes metadata copies as the schema they are created from', async () => {
+  const meta = Symbol('meta');
+  const Shared = Schema({ a: 1 });
+  const Test = Schema({
+    copy: withSchemaMeta(Shared, meta, () => {}),
+    modified: modifyOpts(withSchemaMeta(Shared, meta, true), { b: 2 }),
+  });
+  const output = generateSelfSourceFilesOutput({ 'test.ts': { Shared, Test, Inline: withSchemaMeta(Schema({ c: 3 }), meta, 1) } }, pathGetter);
+  expect(output.contents[0]).toMatchObject({
+    contents: `import Schema from "@supschema/core/Schema";
+import { modifyOpts } from "@supschema/core";
+
+export const Shared = Schema({
+  a: 1,
+});
+export const Test = Schema({
+  copy: Shared,
+  modified: modifyOpts(
+    Shared,
+    {
+      b: 2,
+    }
+  ),
+});
+export const Inline = Schema({
+  c: 3,
+});
+`,
   });
 });

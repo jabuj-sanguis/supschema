@@ -5,11 +5,12 @@ export interface OptionsModification<S extends Schema> {
   options: Partial<SchemaOptions<S>>;
 }
 const MODIFICATION_KEY = '$modification';
+const META_SOURCE_KEY = '$metaSource';
 
 /** Copies the schema with all own properties, including symbols and non-enumerable ones */
-const cloneSchema = <S extends Schema>(schema: S, exclude?: PropertyKey): S => {
+const cloneSchema = <S extends Schema>(schema: S, exclude: PropertyKey[]): S => {
   const descriptors: PropertyDescriptorMap = Object.getOwnPropertyDescriptors(schema);
-  if (exclude !== undefined) delete descriptors[exclude];
+  for (const key of exclude) delete descriptors[key];
   return Object.create(Object.getPrototypeOf(schema), descriptors) as S;
 };
 
@@ -18,7 +19,8 @@ const cloneSchema = <S extends Schema>(schema: S, exclude?: PropertyKey): S => {
  * and other non-enumerable properties are preserved.
  */
 export const modifyOpts = <S extends Schema>(originalSchema: S, options: Partial<SchemaOptions<S>>): S => {
-  const newSchema = Object.assign(cloneSchema(originalSchema, MODIFICATION_KEY), options);
+  // The options differ, so the schema is no metadata copy of the source of the original schema
+  const newSchema = Object.assign(cloneSchema(originalSchema, [MODIFICATION_KEY, META_SOURCE_KEY]), options);
   Object.defineProperty(newSchema, MODIFICATION_KEY, {
     enumerable: false,
     value: {
@@ -35,11 +37,32 @@ export const extractOptionsModification = <S extends Schema>(schema: S) =>
  * Returns a copy of the schema with a non-enumerable metadata property, which is not an option of the schema.
  * Use it for application specific data that must not be serialized, e.g. functions. The metadata is preserved
  * by {@link modifyOpts} and further `withSchemaMeta` calls, the modification of the schema stays the same.
+ * The copy refers to the schema without metadata, see {@link getMetaSource}.
  */
 export const withSchemaMeta = <S extends Schema>(schema: S, key: symbol, value: unknown): S => {
-  const newSchema = cloneSchema(schema, key);
+  const newSchema = cloneSchema(schema, [key]);
   Object.defineProperty(newSchema, key, { enumerable: false, value });
+  if (!(META_SOURCE_KEY in schema))
+    Object.defineProperty(newSchema, META_SOURCE_KEY, { enumerable: false, value: schema });
   return newSchema;
+};
+
+/**
+ * Returns the schema a {@link withSchemaMeta} copy was created from, without any metadata.
+ * Both have the same options, so applications can treat the copy as this schema, e.g. to refer to it by name.
+ */
+export const getMetaSource = <S extends Schema>(schema: S): S | undefined =>
+  META_SOURCE_KEY in schema ? (schema[META_SOURCE_KEY] as S) : undefined;
+
+/**
+ * Returns the schema and the schemas it is created from, following metadata copies ({@link withSchemaMeta})
+ * and option modifications ({@link modifyOpts}). Use it to find schemas known by identity, e.g. declared ones.
+ */
+export const getSchemaOrigins = <S extends Schema>(schema: S): S[] => {
+  const origins: S[] = [];
+  for (let s: S | undefined = schema; s; s = getMetaSource(s) ?? extractOptionsModification(s)?.originalSchema)
+    origins.push(s);
+  return origins;
 };
 
 /** Returns metadata stored with {@link withSchemaMeta} */

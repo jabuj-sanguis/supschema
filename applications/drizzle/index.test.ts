@@ -19,7 +19,7 @@ declare module './base.js' {
 }
 import { S } from '@supschema/common-types';
 import { Model, ModelRelation, Unique } from '@supschema/model-types';
-import { check, customType, getTableConfig, index } from 'drizzle-orm/pg-core';
+import { check, customType, getTableConfig, index, jsonb, text } from 'drizzle-orm/pg-core';
 
 const pgCustomText = customType<{ data: string }>({ dataType: () => 'citext' });
 import { getTableConfig as getSqliteTableConfig } from 'drizzle-orm/sqlite-core';
@@ -71,6 +71,33 @@ it('generates descriptions and enums', async () => {
 \t"test1" text PRIMARY KEY NOT NULL,
 \t"test2" "TestEnum" NOT NULL,
 \t"test3" "TestTypeTest3" NOT NULL
+);
+`,
+  ]);
+});
+
+it('finds declared enums through modified copies', async () => {
+  const RequestStatus = S.Enum({ pending: {}, approved: {} });
+  const Requests = Model(
+    { name: 'Requests', key: ['id'] },
+    {
+      id: S.Int32(),
+      default: RequestStatus.$drizzle((c) => c.default('pending')),
+      pub: RequestStatus.$testPub(),
+      unique: Unique(RequestStatus.$testPub().$drizzle((c) => c.default('approved'))),
+    },
+  );
+
+  const schema = drizzleSchema('postgresql', { RequestStatus, Requests });
+  expect(Object.keys(schema)).toEqual(['RequestStatus', 'Requests', 'RequestsRelations']);
+  expect(await generatePostgresTest({ RequestStatus, Requests })).toEqual([
+    `CREATE TYPE "public"."RequestStatus" AS ENUM('pending', 'approved');`,
+    `CREATE TABLE "Requests" (
+\t"id" integer PRIMARY KEY NOT NULL,
+\t"default" "RequestStatus" DEFAULT 'pending' NOT NULL,
+\t"pub" "RequestStatus" NOT NULL,
+\t"unique" "RequestStatus" DEFAULT 'approved' NOT NULL,
+\tCONSTRAINT "Requests_unique_unique" UNIQUE("unique")
 );
 `,
   ]);
@@ -196,6 +223,62 @@ it('Nullable, Array and Object', async () => {
   ]);
 
   expect((await generateSqliteTest({ Test }))[0]).toContain('`array` text NOT NULL');
+});
+
+it('stores Record, Tuple, Union and Intersect as JSON', async () => {
+  const Point = S.Tuple([S.Float64(), S.Float64()]);
+  const Test = Model(
+    { name: 'Test', key: ['id'] },
+    {
+      id: S.Int32(),
+      record: S.Record(S.String(), S.Int32()),
+      tuple: Point,
+      path: S.Array(Point),
+      union: S.Union([S.String(), S.Object({ a: S.Int32() })]),
+      intersect: S.Intersect([S.Object({ a: S.Int32() }), S.Object({ b: S.Nullable(S.String()) })]),
+      nullableTuple: S.Nullable(Point),
+    },
+  );
+
+  expect(await generatePostgresTest({ Test })).toEqual([
+    `CREATE TABLE "Test" (
+\t"id" integer PRIMARY KEY NOT NULL,
+\t"record" jsonb NOT NULL,
+\t"tuple" jsonb NOT NULL,
+\t"path" jsonb NOT NULL,
+\t"union" jsonb NOT NULL,
+\t"intersect" jsonb NOT NULL,
+\t"nullableTuple" jsonb
+);
+`,
+  ]);
+  expect((await generateMySqlTest({ Test }))[0]).toContain('`path` json NOT NULL');
+
+  // Native PostgreSQL arrays depend on the column of the item, including `$drizzle` changes
+  const { Arrays } = drizzleSchema('postgresql', {
+    Arrays: Model(
+      { name: 'Arrays', key: ['id'] },
+      {
+        id: S.Int32(),
+        jsonItems: S.Array(S.String().$drizzle(() => jsonb())),
+        textItems: S.Array(S.Object({ a: S.Int32() }).$drizzle(() => text())),
+      },
+    ),
+  });
+  expect(getTableConfig(Arrays).columns.map((c) => c.getSQLType())).toEqual(['integer', 'jsonb', 'text[]']);
+  expectTypeOf<typeof Arrays.$inferSelect.textItems>().toEqualTypeOf<string[]>();
+  expect((await generateSqliteTest({ Test }))[0]).toContain('`path` text NOT NULL');
+
+  const { Test: table } = drizzleSchema('postgresql', { Test });
+  expectTypeOf(table.$inferSelect).toEqualTypeOf<{
+    id: number;
+    record: { [key: string]: number };
+    tuple: [number, number];
+    path: [number, number][];
+    union: string | { a: number };
+    intersect: { a: number } & { b: string | null };
+    nullableTuple: [number, number] | null;
+  }>();
 });
 
 it('models', async () => {

@@ -35,7 +35,7 @@ export const User = Model(
     name: S.String(),
     status: UserStatus,
     bio: S.Nullable(S.String()),
-    // Objects and arrays of non-scalar values are stored as JSON
+    // Object, Record, Tuple, Union, Intersect and arrays of non-scalar values are stored as JSON
     settings: S.Object({ theme: S.Enum({ dark: {}, light: {} }), notifications: S.Boolean() }),
   },
 );

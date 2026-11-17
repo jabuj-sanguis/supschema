@@ -13,7 +13,7 @@ import * as pg from 'drizzle-orm/pg-core';
 import * as mysql from 'drizzle-orm/mysql-core';
 import * as sqlite from 'drizzle-orm/sqlite-core';
 import { capitalize, groupBy, mapValues } from 'remeda';
-import { extractOptionsModification, getSchemaMeta, Schema } from '@supschema/core';
+import { getSchemaMeta, getSchemaOrigins, Schema } from '@supschema/core';
 import { Model, ModelRelation, ReferentialAction } from '@supschema/model-types';
 import type { S } from '@supschema/common-types';
 import Enum from '@supschema/common-types/Enum.js';
@@ -169,6 +169,16 @@ export interface JsonColumns<T> {
   mysql: $Type<mysql.MySqlJsonBuilderInitial<''>, T>;
   sqlite: $Type<sqlite.SQLiteTextJsonBuilderInitial<''>, T>;
 }
+
+/** Column definition of a value stored as JSON, e.g. an object or a tuple */
+export const jsonColumnDef = <T>(schema: S.DataValue): DrizzleColumnDef<JsonColumns<T>, false> =>
+  withColumnModifiers(schema, { column: (ctx) => jsonColumn(ctx.dialect) as never, nullable: false });
+
+type IntersectJsonData<T> = T extends [infer H, ...infer R] ? JsonData<H> & IntersectJsonData<R> : unknown;
+/** JSON value types of the items of a schema, e.g. of a tuple */
+export type JsonDataItems<T> = { [K in keyof T]: JsonData<T[K]> };
+/** JSON value type of all schemas of an intersection */
+export type JsonDataIntersection<T> = IntersectJsonData<T>;
 
 export const jsonColumn = (dialect: DrizzleDialect) =>
   ({
@@ -387,7 +397,7 @@ export const drizzleSchema = <D extends DrizzleDialect, T extends Record<string,
 
   const enums = new Map<Schema, pg.PgEnum<[string, ...string[]]>>();
   const findEnum = (schema: Schema) => {
-    for (let s: Schema | undefined = schema; s; s = extractOptionsModification(s)?.originalSchema) {
+    for (const s of getSchemaOrigins(schema)) {
       const e = enums.get(s);
       if (e) return e;
     }

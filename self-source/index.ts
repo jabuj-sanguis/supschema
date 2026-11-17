@@ -1,5 +1,6 @@
 import {
   extractOptionsModification,
+  getMetaSource,
   getSchemaType,
   nodeModulesSchemaPathGetter,
   Schema,
@@ -26,8 +27,12 @@ export const SelfSourceValue = stc(({ value, declaration }: { value: unknown; de
 
   let children: Children;
   if (value instanceof Schema) {
+    const metaSource = getMetaSource(value);
     const optionsModification = extractOptionsModification(value);
-    if (optionsModification) {
+    if (metaSource) {
+      // Metadata is not serialized, so the copy is written as the schema it is created from
+      children = SelfSourceValue({ value: metaSource });
+    } else if (optionsModification) {
       children = ts.FunctionCallExpression({
         target: importRef('@supschema/core', 'modifyOpts' satisfies keyof typeof import('@supschema/core')),
         args: [optionsModification.originalSchema, optionsModification.options].map((a) =>

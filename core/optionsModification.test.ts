@@ -1,5 +1,12 @@
 import { expect, it } from 'vitest';
-import { extractOptionsModification, getSchemaMeta, modifyOpts, withSchemaMeta } from './optionsModification.js';
+import {
+  extractOptionsModification,
+  getMetaSource,
+  getSchemaMeta,
+  getSchemaOrigins,
+  modifyOpts,
+  withSchemaMeta,
+} from './optionsModification.js';
 import { Schema } from './Schema.js';
 
 it('returns a new schema with merged options and preserves prototype', () => {
@@ -64,4 +71,24 @@ it('stores metadata without changing options or modification', () => {
   expect(getSchemaMeta(replaced, other)).toBe(2);
   expect(getSchemaMeta(modified, meta)).toBeUndefined();
   expect(getSchemaMeta(base, meta)).toBeUndefined();
+});
+
+it('refers to the schema without metadata', () => {
+  const meta = Symbol('meta');
+  const base = Schema({ a: 1 });
+  const withMeta = withSchemaMeta(base, meta, 1);
+  const twice = withSchemaMeta(withMeta, Symbol('other'), 2);
+  const modified = modifyOpts(twice, { b: 2 });
+  const modifiedWithMeta = withSchemaMeta(modified, meta, 3);
+
+  expect(getMetaSource(base)).toBeUndefined();
+  expect(getMetaSource(withMeta)).toBe(base);
+  expect(getMetaSource(twice)).toBe(base);
+  // Options differ after a modification
+  expect(getMetaSource(modified)).toBeUndefined();
+  expect(getMetaSource(modifiedWithMeta)).toBe(modified);
+  expect(Object.keys(withMeta)).toEqual(['a']);
+
+  expect(getSchemaOrigins(base)).toEqual([base]);
+  expect(getSchemaOrigins(modifiedWithMeta)).toStrictEqual([modifiedWithMeta, modified, twice, base]);
 });
