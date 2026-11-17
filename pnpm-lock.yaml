@@ -32,6 +32,9 @@ importers:
       '@supschema/model-types':
         specifier: workspace:*
         version: link:../../model-types
+      drizzle-orm:
+        specifier: '*'
+        version: 0.45.4
       remeda:
         specifier: ^2.39.0
         version: 2.39.0
@@ -39,9 +42,6 @@ importers:
       drizzle-kit:
         specifier: ^0.31.11
         version: 0.31.11
-      drizzle-orm:
-        specifier: ^0.45.4
-        version: 0.45.4
     optionalDependencies:
       '@supschema/common-types':
         specifier: workspace:*

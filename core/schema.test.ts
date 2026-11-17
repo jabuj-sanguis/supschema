@@ -1,5 +1,5 @@
-import { expect, it } from 'vitest';
-import { createType, extend, getSchemaType, Schema } from './Schema.js';
+import { expect, expectTypeOf, it } from 'vitest';
+import { createType, extend, getSchemaType, Schema, SchemaOptions } from './Schema.js';
 
 const fakeImportMeta = (url: string) => ({ url }) as ImportMeta;
 
@@ -85,4 +85,14 @@ it('can disable getter memoization when requested', () => {
   expect(instance.$computed).toBe(7);
   expect(instance.$computed).toBe(7);
   expect(calls).toBe(2);
+});
+
+it('excludes computed and symbol properties from options', () => {
+  const brand = Symbol('brand');
+  interface Branded extends Schema {
+    a: number;
+    $computed: string;
+    [brand]: true;
+  }
+  expectTypeOf<SchemaOptions<Branded>>().toEqualTypeOf<{ a: number }>();
 });

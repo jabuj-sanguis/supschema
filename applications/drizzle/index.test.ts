@@ -77,27 +77,27 @@ it('generates descriptions and enums', async () => {
 });
 
 it('finds declared enums through modified copies', async () => {
-  const RequestStatus = S.Enum({ pending: {}, approved: {} });
-  const Requests = Model(
-    { name: 'Requests', key: ['id'] },
+  const TestEnum = S.Enum({ a: {}, b: {} });
+  const Test = Model(
+    { name: 'Test', key: ['id'] },
     {
       id: S.Int32(),
-      default: RequestStatus.$drizzle((c) => c.default('pending')),
-      pub: RequestStatus.$testPub(),
-      unique: Unique(RequestStatus.$testPub().$drizzle((c) => c.default('approved'))),
+      default: TestEnum.$drizzle((c) => c.default('a')),
+      pub: TestEnum.$testPub(),
+      unique: Unique(TestEnum.$testPub().$drizzle((c) => c.default('b'))),
     },
   );
 
-  const schema = drizzleSchema('postgresql', { RequestStatus, Requests });
-  expect(Object.keys(schema)).toEqual(['RequestStatus', 'Requests', 'RequestsRelations']);
-  expect(await generatePostgresTest({ RequestStatus, Requests })).toEqual([
-    `CREATE TYPE "public"."RequestStatus" AS ENUM('pending', 'approved');`,
-    `CREATE TABLE "Requests" (
+  const schema = drizzleSchema('postgresql', { TestEnum, Test });
+  expect(Object.keys(schema)).toEqual(['TestEnum', 'Test', 'TestRelations']);
+  expect(await generatePostgresTest({ TestEnum, Test })).toEqual([
+    `CREATE TYPE "public"."TestEnum" AS ENUM('a', 'b');`,
+    `CREATE TABLE "Test" (
 \t"id" integer PRIMARY KEY NOT NULL,
-\t"default" "RequestStatus" DEFAULT 'pending' NOT NULL,
-\t"pub" "RequestStatus" NOT NULL,
-\t"unique" "RequestStatus" DEFAULT 'approved' NOT NULL,
-\tCONSTRAINT "Requests_unique_unique" UNIQUE("unique")
+\t"default" "TestEnum" DEFAULT 'a' NOT NULL,
+\t"pub" "TestEnum" NOT NULL,
+\t"unique" "TestEnum" DEFAULT 'b' NOT NULL,
+\tCONSTRAINT "Test_unique_unique" UNIQUE("unique")
 );
 `,
   ]);
@@ -286,10 +286,11 @@ it('stores Optional object properties as optional JSON keys', () => {
     { name: 'Test', key: ['id'] },
     {
       id: S.Int32(),
-      products: S.Array(
+      items: S.Array(
         S.Object({
           name: S.String(),
-          apheresisOnly: S.Optional(S.Boolean()),
+          // Options are accepted, the type-only brand is no option
+          flag: S.Optional(S.Boolean(), { description: 'Optional flag' }),
           note: S.Optional(S.Nullable(S.String())),
           nullable: S.Nullable(S.Int32()),
           nested: S.Optional(S.Object({ a: S.Optional(S.Int32()) })),
@@ -299,10 +300,10 @@ it('stores Optional object properties as optional JSON keys', () => {
   );
   const { Test: table } = drizzleSchema('postgresql', { Test });
 
-  expectTypeOf<(typeof table.$inferSelect)['products']>().toEqualTypeOf<
+  expectTypeOf<(typeof table.$inferSelect)['items']>().toEqualTypeOf<
     {
       name: string;
-      apheresisOnly?: boolean | undefined;
+      flag?: boolean | undefined;
       note?: string | null | undefined;
       nullable: number | null;
       nested?: { a?: number | undefined } | undefined;

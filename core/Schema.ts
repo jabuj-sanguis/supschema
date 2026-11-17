@@ -1,7 +1,8 @@
 export interface Schema {}
 
 export type SchemaOptions<S extends Schema> = {
-  [K in keyof S as K extends `$${string}` ? never : K]: S[K];
+  // `$` properties are computed, symbol properties are metadata or type-only brands
+  [K in keyof S as K extends `$${string}` | symbol ? never : K]: S[K];
 };
 
 export interface SchemaTypeProperties<S extends Schema = any, Args extends any[] = any[]> {
