@@ -103,6 +103,37 @@ it('finds declared enums through modified copies', async () => {
   ]);
 });
 
+it('uses database names of enums', async () => {
+  const OtherEnum = S.Enum({ a: {}, b: {} }, { dbName: 'SharedName' });
+  const Test = Model(
+    { name: 'Test', key: ['id'] },
+    { id: S.Int32(), other: OtherEnum, inline: S.Enum({ c: {} }, { dbName: 'InlineName' }) },
+  );
+
+  const schema = drizzleSchema('postgresql', { OtherEnum, Test });
+  expect(Object.keys(schema)).toEqual(['OtherEnum', 'TestInline', 'Test', 'TestRelations']);
+  expect(await generatePostgresTest({ OtherEnum, Test })).toEqual([
+    `CREATE TYPE "public"."SharedName" AS ENUM('a', 'b');`,
+    `CREATE TYPE "public"."InlineName" AS ENUM('c');`,
+    `CREATE TABLE "Test" (
+\t"id" integer PRIMARY KEY NOT NULL,
+\t"other" "SharedName" NOT NULL,
+\t"inline" "InlineName" NOT NULL
+);
+`,
+  ]);
+
+  // Two enums with the same database name would silently replace each other in drizzle-kit
+  const SharedName = S.Enum({ x: {} });
+  expect(() => drizzleSchema('postgresql', { SharedName, OtherEnum })).toThrow(
+    'Enums SharedName and OtherEnum have the same database name public.SharedName',
+  );
+  // Different database schemas don't conflict
+  expect(() =>
+    drizzleSchema('postgresql', { SharedName: S.Enum({ x: {} }, { dbSchema: 'other' }), OtherEnum }),
+  ).not.toThrow();
+});
+
 const scalars = Model(
   { name: 'Test', key: ['string'] },
   {

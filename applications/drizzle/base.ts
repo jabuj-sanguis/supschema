@@ -418,9 +418,19 @@ export const drizzleSchema = <D extends DrizzleDialect, T extends Record<string,
       if (e) return e;
     }
   };
+  const enumDbNames = new Map<string, string>();
+  /** Declares the enum exported as `name`, its database name is `dbName` or the export name */
   const declareEnum = (name: string, schema: S.Enum) => {
+    const dbName = schema.dbName ?? name;
+    const qualifiedName = `${schema.dbSchema ?? 'public'}.${dbName}`;
+    const declared = enumDbNames.get(qualifiedName);
+    if (declared) throw new Error(`Enums ${declared} and ${name} have the same database name ${qualifiedName}`);
+    enumDbNames.set(qualifiedName, name);
+
     const values = Object.keys(schema.values) as [string, ...string[]];
-    const pgEnum = schema.dbSchema ? (getDbSchema(schema.dbSchema) as pg.PgSchema).enum(name, values) : pg.pgEnum(name, values);
+    const pgEnum = schema.dbSchema
+      ? (getDbSchema(schema.dbSchema) as pg.PgSchema).enum(dbName, values)
+      : pg.pgEnum(dbName, values);
     enums.set(schema, pgEnum);
     result[name] = pgEnum;
   };

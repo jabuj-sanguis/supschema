@@ -15,6 +15,11 @@ declare module '@supschema/common-types/Enum.js' {
   interface Enum<V> extends DrizzleExtension<EnumColumns<V>> {
     /** Database schema of the PostgreSQL enum */
     dbSchema?: string;
+    /**
+     * Database name of the PostgreSQL enum. By default it's the key passed to `drizzleSchema`,
+     * or `<Model><Property>` for enums not passed explicitly. The export name stays the same.
+     */
+    dbName?: string;
   }
 }
 
