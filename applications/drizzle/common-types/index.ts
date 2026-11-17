@@ -6,6 +6,7 @@ export * from './Enum.js';
 export * from './Nullable.js';
 export * from './Intersect.js';
 export * from './Object.js';
+export * from './Optional.js';
 export * from './Record.js';
 export * from './Tuple.js';
 export * from './Union.js';

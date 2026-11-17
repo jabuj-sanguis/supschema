@@ -1,9 +1,9 @@
 import { extend } from '@supschema/core';
 import { S } from '@supschema/common-types';
-import { DrizzleColumnDef, DrizzleExtension, JsonColumns, JsonData, jsonColumnDef } from '../base.js';
+import { DrizzleColumnDef, DrizzleExtension, JsonColumns, JsonObjectData, jsonColumnDef } from '../base.js';
 
 declare module '@supschema/common-types/object/Object.js' {
-  interface Object<P> extends DrizzleExtension<JsonColumns<{ [K in keyof P]: JsonData<P[K]> }>> {}
+  interface Object<P> extends DrizzleExtension<JsonColumns<JsonObjectData<P>>> {}
 }
 
 extend(S.Object, {

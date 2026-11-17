@@ -154,9 +154,18 @@ export const columnDef = <F extends ColumnFactories>(
     nullable: false,
   });
 
+/** Type-only brand of `S.Optional`, which is otherwise structurally equal to `S.Nullable` */
+export declare const DRIZZLE_OPTIONAL: unique symbol;
+interface OptionalLike<S = unknown> {
+  readonly [DRIZZLE_OPTIONAL]: true;
+  schema: S;
+}
+
 /** Type of the column value used when the column is embedded into a JSON column */
 export type JsonData<T> =
-  T extends DrizzleExtended
+  T extends OptionalLike<infer I>
+    ? JsonData<I> | undefined
+    : T extends DrizzleExtended
     ? DrizzleColumnsOf<T> extends infer C extends DialectColumns
       ?
           | (C['postgresql']['_'] extends { $type: infer U } ? U : C['postgresql']['_']['data'])
@@ -175,6 +184,13 @@ export const jsonColumnDef = <T>(schema: S.DataValue): DrizzleColumnDef<JsonColu
   withColumnModifiers(schema, { column: (ctx) => jsonColumn(ctx.dialect) as never, nullable: false });
 
 type IntersectJsonData<T> = T extends [infer H, ...infer R] ? JsonData<H> & IntersectJsonData<R> : unknown;
+/** JSON value type of object properties, `S.Optional` properties are optional keys */
+export type JsonObjectData<P> = {
+  [K in keyof P as P[K] extends OptionalLike ? K : never]?: JsonData<P[K]>;
+} & { [K in keyof P as P[K] extends OptionalLike ? never : K]: JsonData<P[K]> } extends infer O
+  ? { [K in keyof O]: O[K] }
+  : never;
+
 /** JSON value types of the items of a schema, e.g. of a tuple */
 export type JsonDataItems<T> = { [K in keyof T]: JsonData<T[K]> };
 /** JSON value type of all schemas of an intersection */

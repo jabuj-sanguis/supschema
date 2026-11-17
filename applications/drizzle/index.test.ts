@@ -281,6 +281,36 @@ it('stores Record, Tuple, Union and Intersect as JSON', async () => {
   }>();
 });
 
+it('stores Optional object properties as optional JSON keys', () => {
+  const Test = Model(
+    { name: 'Test', key: ['id'] },
+    {
+      id: S.Int32(),
+      products: S.Array(
+        S.Object({
+          name: S.String(),
+          apheresisOnly: S.Optional(S.Boolean()),
+          note: S.Optional(S.Nullable(S.String())),
+          nullable: S.Nullable(S.Int32()),
+          nested: S.Optional(S.Object({ a: S.Optional(S.Int32()) })),
+        }),
+      ),
+    },
+  );
+  const { Test: table } = drizzleSchema('postgresql', { Test });
+
+  expectTypeOf<(typeof table.$inferSelect)['products']>().toEqualTypeOf<
+    {
+      name: string;
+      apheresisOnly?: boolean | undefined;
+      note?: string | null | undefined;
+      nullable: number | null;
+      nested?: { a?: number | undefined } | undefined;
+    }[]
+  >();
+  expect(getTableConfig(table).columns.map((c) => c.getSQLType())).toEqual(['integer', 'jsonb']);
+});
+
 it('models', async () => {
   const Test = Model(
     {
