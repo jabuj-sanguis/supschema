@@ -3,6 +3,7 @@ import {} from '@supschema/common-types';
 export * from './Array.js';
 export * from './Boolean.js';
 export * from './Bytes.js';
+export * from './DataValue.js';
 export * from './Enum.js';
 export * from './Intersect.js';
 export * from './Null.js';

@@ -147,6 +147,28 @@ SupSchema keeps track of the relationship between `CommentedSchema` and `SomeSch
 
 The project is still in an early proof-of-concept stage. The core part is usable, but the applications are not finished yet.
 
+## zod options
+
+`@supschema/zod` reads these options besides the common ones:
+
+```typescript
+// Unknown keys of objects: 'strict' (default, rejected), 'strip' (removed) or 'passthrough' (kept)
+const Public = S.Object({ id: S.String() }, { unknownKeys: 'strip' });
+z.encode(Public.$zod, { id: '1', secret: 'x' }); // { id: '1' }
+
+// Whitespace is trimmed before minLength, maxLength and pattern are checked
+S.String({ trim: true, minLength: 1 }).$zod.safeParse('  ').success; // false
+
+// A schema with a changed zod schema; containing schemas apply it too, and `$zod` is typed by the modifier
+const Booking = S.Object({ from: S.String(), to: S.String() }).$zodWith((z) =>
+  z.refine((b) => b.from !== b.to, { path: ['to'], message: 'Must differ from "from"' }),
+);
+```
+
+Importing `@supschema/zod/strip` instead of `@supschema/zod` makes `strip` the default of all objects, at run time and in the types. Setting two different defaults throws.
+
+`$zodWith` stores its modifier in the `zodWith` option (set it through `$zodWith` only), so the schema keeps working with `modifyOpts`, but can't be written as source (see [Schema options](#schema-options)).
+
 ## Repository layout
 
 - `core/` – the root `Schema` type, `createType`, and `modifyOpts`

@@ -1,12 +1,15 @@
 import { extend } from '@supschema/core';
 import { S } from '@supschema/common-types';
-import { applyDataValueMeta, ZodExtended, ZodExtension } from '../base.js';
+import { applyDataValueMeta, ZodExtended, ZodExtension, ZodOf } from '../base.js';
 import { z } from 'zod';
 
-type ZodInferIntersect<T extends S.DataValue[]> = T extends [ZodExtended<infer L>, ...infer R extends S.DataValue[]]
+type ZodInferIntersect<T extends S.DataValue[]> = T extends [
+  infer L extends ZodExtended,
+  ...infer R extends S.DataValue[],
+]
   ? R extends never[]
-    ? L
-    : z.ZodIntersection<L, ZodInferIntersect<R>>
+    ? ZodOf<L>
+    : z.ZodIntersection<ZodOf<L>, ZodInferIntersect<R>>
   : never;
 
 declare module '@supschema/common-types/Intersect.js' {
