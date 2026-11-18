@@ -143,6 +143,24 @@ const CommentedSchema = modifyOpts(SomeSchema, { description: 'Some comment diff
 
 SupSchema keeps track of the relationship between `CommentedSchema` and `SomeSchema`. That information can be extracted with `extractOptionsModification(CommentedSchema)` and used by schema applications.
 
+### Model indexes
+
+`Model` (`@supschema/model-types`) declares indexes and unique constraints in its options. Each one lists its fields and may give a database name (to keep a name an existing database already uses) and a raw SQL condition for a partial index. Without `name`, the application's default name is used.
+
+```typescript
+const Booking = Model(
+  {
+    name: 'Booking',
+    key: ['id'],
+    indexes: [{ fields: ['roomId', 'from'], name: 'booking_room_from_idx' }],
+    uniques: [{ fields: ['code'], where: '"cancelledAt" IS NULL' }],
+  },
+  { id: S.String(), roomId: S.String(), from: S.String(), code: S.String(), cancelledAt: S.Nullable(S.String()) },
+);
+```
+
+In Prisma, a named index or unique constraint is written with `map: "<name>"`.
+
 ## Current stage
 
 The project is still in an early proof-of-concept stage. The core part is usable, but the applications are not finished yet.
