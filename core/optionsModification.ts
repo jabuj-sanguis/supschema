@@ -7,10 +7,15 @@ export interface OptionsModification<S extends Schema> {
 const MODIFICATION_KEY = '$modification';
 const META_SOURCE_KEY = '$metaSource';
 
-/** Copies the schema with all own properties, including symbols and non-enumerable ones */
-const cloneSchema = <S extends Schema>(schema: S, exclude: PropertyKey[]): S => {
+/**
+ * Copies the schema with options and metadata, including symbols and non-enumerable properties.
+ * `$` properties are skipped: they are computed values memoized by getters, e.g. `$zod`,
+ * or internal references, which are set by the callers.
+ */
+const cloneSchema = <S extends Schema>(schema: S, exclude: PropertyKey[] = []): S => {
   const descriptors: PropertyDescriptorMap = Object.getOwnPropertyDescriptors(schema);
-  for (const key of exclude) delete descriptors[key];
+  for (const key of Reflect.ownKeys(descriptors))
+    if ((typeof key === 'string' && key.startsWith('$')) || exclude.includes(key)) delete descriptors[key];
   return Object.create(Object.getPrototypeOf(schema), descriptors) as S;
 };
 
@@ -20,7 +25,7 @@ const cloneSchema = <S extends Schema>(schema: S, exclude: PropertyKey[]): S => 
  */
 export const modifyOpts = <S extends Schema>(originalSchema: S, options: Partial<SchemaOptions<S>>): S => {
   // The options differ, so the schema is no metadata copy of the source of the original schema
-  const newSchema = Object.assign(cloneSchema(originalSchema, [MODIFICATION_KEY, META_SOURCE_KEY]), options);
+  const newSchema = Object.assign(cloneSchema(originalSchema), options);
   Object.defineProperty(newSchema, MODIFICATION_KEY, {
     enumerable: false,
     value: {
@@ -42,8 +47,10 @@ export const extractOptionsModification = <S extends Schema>(schema: S) =>
 export const withSchemaMeta = <S extends Schema>(schema: S, key: symbol, value: unknown): S => {
   const newSchema = cloneSchema(schema, [key]);
   Object.defineProperty(newSchema, key, { enumerable: false, value });
-  if (!(META_SOURCE_KEY in schema))
-    Object.defineProperty(newSchema, META_SOURCE_KEY, { enumerable: false, value: schema });
+  // The options are the same, so the modification is kept
+  const modification = Object.getOwnPropertyDescriptor(schema, MODIFICATION_KEY);
+  if (modification) Object.defineProperty(newSchema, MODIFICATION_KEY, modification);
+  Object.defineProperty(newSchema, META_SOURCE_KEY, { enumerable: false, value: getMetaSource(schema) ?? schema });
   return newSchema;
 };
 

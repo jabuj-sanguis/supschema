@@ -1,10 +1,10 @@
 import { extend } from '@supschema/core';
 import { S } from '@supschema/common-types';
-import { applyDataValueMeta, ZodExtended, ZodExtension } from '../base.js';
+import { applyDataValueMeta, ZodExtended, ZodExtension, ZodOf } from '../base.js';
 import { z } from 'zod';
 
 declare module '@supschema/common-types/Array.js' {
-  interface Array<S> extends ZodExtension<S extends ZodExtended<infer Z> ? z.ZodArray<Z> : undefined> {}
+  interface Array<S> extends ZodExtension<S extends ZodExtended ? z.ZodArray<ZodOf<S>> : undefined> {}
 }
 
 type ExtendedArray = S.Array<S.DataValue & ZodExtended>;

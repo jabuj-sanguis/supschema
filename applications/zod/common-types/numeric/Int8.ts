@@ -1,11 +1,12 @@
 import { extend } from '@supschema/core';
 import { S } from '@supschema/common-types';
 import { z } from 'zod';
+import { ResolveZod } from '../../base.js';
 import { applyNumericConstraints } from './common.js';
 
 declare module '@supschema/common-types/numeric/integer/Int8.js' {
   interface Int8 {
-    $zod: z.ZodInt32;
+    $zod: ResolveZod<this, z.ZodInt32>;
   }
 }
 

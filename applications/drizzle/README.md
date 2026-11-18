@@ -213,6 +213,16 @@ extend(Email, {
 } as never);
 ```
 
+## Enum names
+
+The database name of a PostgreSQL enum is its key passed to `drizzleSchema`, or `<Model><Property>` for enums which are not passed explicitly. The `dbName` option sets another database name, the export name stays the same:
+
+```typescript
+export const UnitType = S.Enum({ a: {}, b: {} }, { dbName: 'Type' });
+```
+
+Two enums with the same database name in the same database schema throw an error.
+
 ## Using `drizzleSchema` directly
 
 Without drizzle-kit, e.g. in tests, the schema can be created directly:

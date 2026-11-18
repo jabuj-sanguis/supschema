@@ -7,7 +7,7 @@ import {
   modifyOpts,
   withSchemaMeta,
 } from './optionsModification.js';
-import { Schema } from './Schema.js';
+import { createType, extend, Schema } from './Schema.js';
 
 it('returns a new schema with merged options and preserves prototype', () => {
   const base = Schema({ foo: 'bar' });
@@ -91,4 +91,23 @@ it('refers to the schema without metadata', () => {
 
   expect(getSchemaOrigins(base)).toEqual([base]);
   expect(getSchemaOrigins(modifiedWithMeta)).toStrictEqual([modifiedWithMeta, modified, twice, base]);
+});
+
+it('recomputes memoized getters of copies', () => {
+  const Type = createType<Schema & { a: number; $double: number }>({ url: 'file:///Type.ts' } as ImportMeta, Schema);
+  extend(Type, {
+    get $double() {
+      return this.a * 2;
+    },
+  });
+  const meta = Symbol('meta');
+  const schema = Type({ a: 1 } as never);
+  expect(schema.$double).toBe(2);
+
+  const modified = modifyOpts(schema, { a: 5 } as never);
+  expect(modified.$double).toBe(10);
+  // Getters may depend on metadata, e.g. column modifiers
+  const withMeta = withSchemaMeta(modified, meta, true);
+  expect(Object.getOwnPropertyDescriptor(withMeta, '$double')).toBeUndefined();
+  expect(withMeta.$double).toBe(10);
 });

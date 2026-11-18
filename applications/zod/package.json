@@ -10,6 +10,10 @@
       "supschema-dev": "./index.ts",
       "default": "./dist/index.js"
     },
+    "./strip": {
+      "supschema-dev": "./strip.ts",
+      "default": "./dist/strip.js"
+    },
     "./*": {
       "supschema-dev": "./*",
       "default": "./dist/*"

@@ -1,13 +1,13 @@
 import { extend } from '@supschema/core';
 import { S } from '@supschema/common-types';
-import { applyDataValueMeta, ZodExtended, ZodExtension } from '../base.js';
+import { applyDataValueMeta, ZodExtended, ZodExtension, ZodOf } from '../base.js';
 import { z } from 'zod';
 
 declare module '@supschema/common-types/Union.js' {
   interface Union<T> extends ZodExtension<
     T extends ZodExtended[]
       ? z.ZodUnion<{
-          [K in keyof T]: T[K] extends ZodExtended<infer Z> ? Z : never;
+          [K in keyof T]: ZodOf<T[K]>;
         }>
       : never
   > {}
