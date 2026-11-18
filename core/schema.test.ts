@@ -1,5 +1,5 @@
-import { expect, it } from 'vitest';
-import { createType, extend, getSchemaType, Schema } from './Schema.js';
+import { expect, expectTypeOf, it } from 'vitest';
+import { createType, extend, getSchemaType, Schema, SchemaOptions } from './Schema.js';
 
 const fakeImportMeta = (url: string) => ({ url }) as ImportMeta;
 
@@ -26,6 +26,25 @@ it('creates a named type from importMeta.url and preserves inheritance', () => {
   expect(instance).toBeInstanceOf(Parent);
   expect(instance).toBeInstanceOf(Schema);
   expect(getSchemaType(instance)).toBe(Child);
+});
+
+it('creates a type when importMeta has no url (module transpiled to CommonJS)', () => {
+  const Type = createType({} as ImportMeta, Schema);
+
+  expect(Type.name).toBe('Schema');
+  expect(Type({ foo: 1 })).toEqual({ foo: 1 });
+  expect(Type({})).toBeInstanceOf(Schema);
+});
+
+it('leaves `$` and symbol keys out of SchemaOptions', () => {
+  const brand: unique symbol = Symbol();
+  interface Branded extends Schema {
+    foo: string;
+    $computed: number;
+    [brand]?: { marker: true };
+  }
+
+  expectTypeOf<SchemaOptions<Branded>>().toEqualTypeOf<{ foo: string }>();
 });
 
 it('supports custom constructor functions and getConstructorArgs', () => {

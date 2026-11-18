@@ -1,7 +1,8 @@
 export interface Schema {}
 
 export type SchemaOptions<S extends Schema> = {
-  [K in keyof S as K extends `$${string}` ? never : K]: S[K];
+  // `$` properties are computed, symbol properties are type-only brands
+  [K in keyof S as K extends `$${string}` | symbol ? never : K]: S[K];
 };
 
 export interface SchemaTypeProperties<S extends Schema = any, Args extends any[] = any[]> {
@@ -41,11 +42,12 @@ export function createType(
     return schema;
   }
   Object.defineProperty(constructorFn, 'name', {
+    // `import.meta.url` is undefined when the module is transpiled to CommonJS, e.g. by drizzle-kit
     value:
-      importMeta.url
+      (importMeta?.url ?? '')
         .replace(/\.[^/.]+$/, '')
         .split('/')
-        .findLast((s) => s !== 'index') ?? 'Schema',
+        .findLast((s) => s && s !== 'index') ?? 'Schema',
   });
   if (parentType) Object.setPrototypeOf(constructorFn.prototype, parentType.prototype);
 

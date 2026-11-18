@@ -41,7 +41,7 @@ export const genProtobufField = (key: string, schema: Schema & ProtobufExtended)
       schema: base.baseSchema,
       get ref() {
         const [file, ...namespaces] = base.path;
-        if (file !== currentNode.context.scopePath[0]) registerImport(file);
+        if (file !== undefined && file !== currentNode.context.scopePath[0]) registerImport(file);
         return namespaces.join('.');
       },
     };

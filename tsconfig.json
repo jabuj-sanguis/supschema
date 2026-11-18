@@ -5,6 +5,7 @@
     "moduleResolution": "nodenext",
     "lib": ["ES2023", "DOM"],
     "strict": true,
+    "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
