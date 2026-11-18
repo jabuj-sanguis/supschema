@@ -127,6 +127,12 @@ extend(Uuid, {
 });
 ```
 
+### Schema options
+
+A schema is its options: plain data passed to the type constructor (or to `modifyOpts`), with the type's applications on its prototype. Keys starting with `$` are computed by applications and are not options.
+
+An option may hold a function, e.g. a modifier an application applies in its `$` getter. Such an option works at run time like any other, and `modifyOpts` keeps it. But a function can't be written as source: `self-source` throws for a schema whose own options contain one, naming the option (`"Booking.f: a function can't be written as source"`). A schema derived from such a schema, when that one is declared too, is written by reference to it, so only the declared schema with the function is refused. A code generator that needs such a schema without its functions derives it without those options first.
+
 ### Schema modification
 
 You can create a schema from another schema while overriding some options:
@@ -136,6 +142,24 @@ const CommentedSchema = modifyOpts(SomeSchema, { description: 'Some comment diff
 ```
 
 SupSchema keeps track of the relationship between `CommentedSchema` and `SomeSchema`. That information can be extracted with `extractOptionsModification(CommentedSchema)` and used by schema applications.
+
+### Model indexes
+
+`Model` (`@supschema/model-types`) declares indexes and unique constraints in its options. Each one lists its fields and may give a database name (to keep a name an existing database already uses) and a raw SQL condition for a partial index. Without `name`, the application's default name is used.
+
+```typescript
+const Booking = Model(
+  {
+    name: 'Booking',
+    key: ['id'],
+    indexes: [{ fields: ['roomId', 'from'], name: 'booking_room_from_idx' }],
+    uniques: [{ fields: ['code'], where: '"cancelledAt" IS NULL' }],
+  },
+  { id: S.String(), roomId: S.String(), from: S.String(), code: S.String(), cancelledAt: S.Nullable(S.String()) },
+);
+```
+
+In Prisma, a named index or unique constraint is written with `map: "<name>"`.
 
 ## Current stage
 

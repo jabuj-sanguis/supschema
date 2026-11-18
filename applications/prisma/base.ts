@@ -210,6 +210,14 @@ export const generateModelProperties = (
               },
             ]
           : []),
+        ...(u.name
+          ? [
+              {
+                type: 'attributeArgument' as const,
+                value: { type: 'keyValue' as const, key: 'map', value: `"${u.name}"` },
+              },
+            ]
+          : []),
       ],
     });
   }
@@ -225,6 +233,14 @@ export const generateModelProperties = (
               {
                 type: 'attributeArgument',
                 value: { type: 'function', name: 'raw', params: [u.where] },
+              } satisfies AttributeArgument,
+            ]
+          : []),
+        ...(u.name
+          ? [
+              {
+                type: 'attributeArgument',
+                value: { type: 'keyValue', key: 'map', value: `"${u.name}"` },
               } satisfies AttributeArgument,
             ]
           : []),

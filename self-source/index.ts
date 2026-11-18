@@ -53,11 +53,49 @@ export const SelfSourceValue = stc(({ value, declaration }: { value: unknown; de
   return declaration ? children : ReferenceOrContent({ refkey: refkey(value), children });
 });
 
+/**
+ * Throws if writing `value` as source would have to write a function: options are data, a function option works at run
+ * time, but the generated code would silently lack it. Declared schemas other than `value` itself are written by
+ * reference, so their options don't matter here.
+ */
+const assertWritableAsSource = (
+  value: unknown,
+  path: string,
+  declared: ReadonlySet<unknown>,
+  visited = new Set<object>(),
+): void => {
+  if (typeof value === 'function') throw new Error(`${path}: a function can't be written as source`);
+  if (typeof value !== 'object' || value === null || visited.has(value)) return;
+  visited.add(value);
+  const visit = (v: unknown, p: string) => {
+    if (!declared.has(v)) assertWritableAsSource(v, p, declared, visited);
+  };
+
+  if (value instanceof Schema) {
+    const optionsModification = extractOptionsModification(value);
+    if (optionsModification) {
+      visit(optionsModification.originalSchema, path);
+      visit(optionsModification.options, path);
+    } else {
+      for (const arg of getSchemaType(value).getConstructorArgs(value)) visit(arg, path);
+    }
+  } else if (Array.isArray(value)) {
+    value.forEach((item, i) => visit(item, `${path}[${i}]`));
+  } else {
+    for (const [k, v] of Object.entries(value)) visit(v, `${path}.${k}`);
+  }
+};
+
 export const generateSelfSourceFilesOutput = (
   files: Record<string, Record<string, Schema>>,
   importPathGetter?: SchemaPathGetter,
-) =>
-  render(
+) => {
+  const declared = new Set<unknown>(Object.values(files).flatMap((schemas) => Object.values(schemas)));
+  for (const schemas of Object.values(files)) {
+    for (const [name, schema] of Object.entries(schemas)) assertWritableAsSource(schema, name, declared);
+  }
+
+  return render(
     ImportPathGetterContext.ProviderStc({ value: importPathGetter }).children(
       Output().children(
         Object.entries(files).map(([path, schemas]) =>
@@ -77,6 +115,7 @@ export const generateSelfSourceFilesOutput = (
       ),
     ),
   );
+};
 
 export const generateSelfSourceFiles = (
   files: Record<string, Record<string, Schema>>,
