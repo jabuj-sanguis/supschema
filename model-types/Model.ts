@@ -1,12 +1,20 @@
 import { defineConstructor, createType, SchemaOptions } from '@supschema/core';
 import { Object, ObjectProperties } from '@supschema/common-types/object/Object.js';
 
+export interface ModelIndex<P extends ObjectProperties = any> {
+  fields: (keyof P)[];
+  /** Database name; the application's default name if omitted */
+  name?: string;
+  /** Raw SQL condition of a partial index */
+  where?: string;
+}
+
 export interface Model<Name extends string = any, P extends ObjectProperties = any> extends Object<P> {
   name: Name;
   dbSchema?: string;
   key: (keyof P)[];
-  indexes?: { fields: (keyof P)[]; where?: string }[];
-  uniques?: { fields: (keyof P)[]; where?: string }[];
+  indexes?: ModelIndex<P>[];
+  uniques?: ModelIndex<P>[];
   description?: string;
   view?: boolean;
 }
